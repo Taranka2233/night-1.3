@@ -33,14 +33,12 @@ import androidx.core.app.NotificationCompat;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
-public class CallMessagingService extends com.capacitorjs.plugins.pushnotifications.MessagingService {
+public class CallMessagingService extends com.google.firebase.messaging.FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         Map<String, String> data = remoteMessage.getData();
         if (data != null && "call".equals(data.get("type"))) {
             showIncomingCall(data);
-        } else {
-            super.onMessageReceived(remoteMessage);
         }
     }
 
