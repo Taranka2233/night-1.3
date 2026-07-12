@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336027582244",
+    "project_id": "night-sity",
+    "storage_bucket": "night-sity.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336027582244:android:5e41a07066a7622d3dbdb1",
+        "android_client_info": {
+          "package_name": "net.nightcity.chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyI1Ei7TBwVCd0bZ-EZw9hob0PFZygxgc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
