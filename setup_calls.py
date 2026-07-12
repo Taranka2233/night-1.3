@@ -238,4 +238,19 @@ if inject:
 
 open(man_path, 'w', encoding='utf-8').write(man)
 print('AndroidManifest.xml пропатчен')
+
+# 5) firebase-messaging на compile classpath приложения
+app_gradle = 'android/app/build.gradle'
+if os.path.exists(app_gradle):
+    g = open(app_gradle, encoding='utf-8').read()
+    if 'firebase-messaging' not in g:
+        g = re.sub(r'(dependencies\s*\{)',
+                   r"\1\n    implementation platform('com.google.firebase:firebase-bom:33.1.2')\n    implementation 'com.google.firebase:firebase-messaging'",
+                   g, count=1)
+        open(app_gradle, 'w', encoding='utf-8').write(g)
+        print('firebase-messaging (BoM) добавлен в app/build.gradle')
+    else:
+        print('firebase-messaging уже есть в app/build.gradle')
+else:
+    print('app/build.gradle не найден!')
 print('native-звонок внедрён успешно')
