@@ -1,0 +1,107 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          if [ -f index-1.html ]; then cp index-1.html www/index.html;
+          elif [ -f index.html ]; then cp index.html www/index.html; fi
+          mkdir -p resources
+          if [ -f icon.png ]; then cp icon.png resources/icon.png; fi
+          if [ -f splash.png ]; then cp splash.png resources/splash.png; fi
+
+      - name: Add Android platform
+        run: |
+          if [ ! -d "android" ]; then npx cap add android; fi
+
+      - name: Configure Firebase Cloud Messaging (FCM)
+        run: |
+          if [ -f google-services.json ]; then
+            cp google-services.json android/app/google-services.json
+            echo "google-services.json скопирован"
+          else
+            echo "!!! google-services.json НЕ найден в репозитории — пуши НЕ заработают"
+          fi
+          ROOT_GRADLE=android/build.gradle
+          if [ -f "$ROOT_GRADLE" ] && ! grep -q "com.google.gms:google-services" "$ROOT_GRADLE"; then
+            sed -i 's#dependencies {#dependencies {\n        classpath "com.google.gms:google-services:4.4.2"#' "$ROOT_GRADLE"
+            echo "classpath google-services добавлен"
+          fi
+          APP_GRADLE=android/app/build.gradle
+          if [ -f "$APP_GRADLE" ] && ! grep -q "com.google.gms.google-services" "$APP_GRADLE"; then
+            echo "" >> "$APP_GRADLE"
+            echo "apply plugin: 'com.google.gms.google-services'" >> "$APP_GRADLE"
+            echo "плагин google-services применён"
+          fi
+
+      - name: Add microphone & audio permissions to manifest
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if [ -f "$MANIFEST" ]; then
+            if ! grep -q "RECORD_AUDIO" "$MANIFEST"; then
+              sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' "$MANIFEST"
+              echo "Разрешения добавлены в манифест"
+            else
+              echo "Разрешения уже есть"
+            fi
+          fi
+
+      - name: Configure dynamic app icons
+        run: |
+          if [ -f setup_icons.py ]; then python3 setup_icons.py; else echo "setup_icons.py нет — пропускаю"; fi
+
+      - name: Configure fullscreen incoming call (native)
+        run: |
+          if [ -f setup_calls.py ]; then python3 setup_calls.py; else echo "setup_calls.py нет — пропускаю"; fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Use fixed debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ -f debug.keystore ]; then
+            cp debug.keystore ~/.android/debug.keystore
+            echo "Фиксированный debug.keystore установлен"
+          else
+            echo "debug.keystore не найден — будет случайная подпись"
+          fi
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
