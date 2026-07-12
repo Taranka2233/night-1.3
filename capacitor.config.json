@@ -1,0 +1,11 @@
+{
+  "appId": "net.nightcity.chat",
+  "appName": "Найт-Сити Нет",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#0a0a0f",
+  "android": {
+    "backgroundColor": "#0a0a0f",
+    "allowMixedContent": false
+  }
+}
