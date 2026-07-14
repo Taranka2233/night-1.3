@@ -31,6 +31,7 @@ jobs:
           mkdir -p www
           if [ -f index-1.html ]; then cp index-1.html www/index.html;
           elif [ -f index.html ]; then cp index.html www/index.html; fi
+          if [ -f firebase-bundle.js ]; then cp firebase-bundle.js www/firebase-bundle.js; fi
           mkdir -p resources
           if [ -f icon.png ]; then cp icon.png resources/icon.png; fi
           if [ -f splash.png ]; then cp splash.png resources/splash.png; fi
@@ -45,7 +46,7 @@ jobs:
             cp google-services.json android/app/google-services.json
             echo "google-services.json скопирован"
           else
-            echo "!!! google-services.json НЕ найден в репозитории — пуши НЕ заработают"
+            echo "!!! google-services.json НЕ найден — пуши НЕ заработают"
           fi
           ROOT_GRADLE=android/build.gradle
           if [ -f "$ROOT_GRADLE" ] && ! grep -q "com.google.gms:google-services" "$ROOT_GRADLE"; then
