@@ -1,0 +1,47 @@
+name: Message Selection Checks
+
+on:
+  push:
+    branches: [ agent/fix-message-selection ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  selection-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply repair to repository source
+        run: |
+          rm -rf build/selection-check
+          mkdir -p build/selection-check
+          SOURCE=index.html
+          if [ -f index-1.html ]; then SOURCE=index-1.html; fi
+          python3 scripts/patch_selection_stage1.py "$SOURCE" build/selection-check/1.html
+          python3 scripts/patch_selection_stage2.py build/selection-check/1.html build/selection-check/2.html
+          python3 scripts/patch_selection_stage3a.py build/selection-check/2.html build/selection-check/3.html
+          python3 scripts/patch_selection_stage3b.py build/selection-check/3.html build/selection-check/4.html
+          python3 scripts/finalize_selection_fix.py build/selection-check/4.html build/selection-check/5.html
+          python3 scripts/patch_keyed_runtime.py build/selection-check/5.html build/selection-check/index.html --runtime-out build/selection-check/runtime.js
+
+      - name: Run selection regression tests
+        run: node tests/selection_fix_tests.js build/selection-check/index.html build/selection-check/runtime.js
+
+      - name: Verify repair is deterministic
+        run: |
+          python3 scripts/patch_selection_stage1.py "$([[ -f index-1.html ]] && echo index-1.html || echo index.html)" build/selection-check/repeat-1.html
+          python3 scripts/patch_selection_stage2.py build/selection-check/repeat-1.html build/selection-check/repeat-2.html
+          python3 scripts/patch_selection_stage3a.py build/selection-check/repeat-2.html build/selection-check/repeat-3.html
+          python3 scripts/patch_selection_stage3b.py build/selection-check/repeat-3.html build/selection-check/repeat-4.html
+          python3 scripts/finalize_selection_fix.py build/selection-check/repeat-4.html build/selection-check/repeat-5.html
+          python3 scripts/patch_keyed_runtime.py build/selection-check/repeat-5.html build/selection-check/repeat-index.html --runtime-out build/selection-check/repeat-runtime.js
+          cmp build/selection-check/index.html build/selection-check/repeat-index.html
+          cmp build/selection-check/runtime.js build/selection-check/repeat-runtime.js
