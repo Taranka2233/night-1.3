@@ -1,0 +1,20 @@
+name: Export index for selection repair
+
+on:
+  push:
+    branches:
+      - agent/fix-message-selection
+  workflow_dispatch: {}
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Upload current index
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-index-source
+          path: index.html
+          if-no-files-found: error
