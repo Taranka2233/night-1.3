@@ -2,6 +2,8 @@ name: Build Android APK
 
 on:
   push:
+    branches: [ main, master, agent/fix-message-selection ]
+  pull_request:
     branches: [ main, master ]
   workflow_dispatch: {}
 
@@ -28,12 +30,23 @@ jobs:
 
       - name: Prepare web assets
         run: |
-          mkdir -p www
+          rm -rf www build/selection-*.html build/selection-runtime.js
+          mkdir -p www build resources
           if [ -f index-1.html ]; then cp index-1.html www/index.html;
-          elif [ -f index.html ]; then cp index.html www/index.html; fi
-          mkdir -p resources
+          elif [ -f index.html ]; then cp index.html www/index.html;
+          else echo "index.html не найден" >&2; exit 1; fi
           if [ -f icon.png ]; then cp icon.png resources/icon.png; fi
           if [ -f splash.png ]; then cp splash.png resources/splash.png; fi
+
+      - name: Apply and test message selection repair
+        run: |
+          python3 scripts/patch_selection_stage1.py www/index.html build/selection-1.html
+          python3 scripts/patch_selection_stage2.py build/selection-1.html build/selection-2.html
+          python3 scripts/patch_selection_stage3a.py build/selection-2.html build/selection-3.html
+          python3 scripts/patch_selection_stage3b.py build/selection-3.html build/selection-4.html
+          python3 scripts/finalize_selection_fix.py build/selection-4.html build/selection-5.html
+          python3 scripts/patch_keyed_runtime.py build/selection-5.html www/index.html --runtime-out build/selection-runtime.js
+          node tests/selection_fix_tests.js www/index.html build/selection-runtime.js
 
       - name: Add Android platform
         run: |
@@ -105,3 +118,4 @@ jobs:
         with:
           name: app-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
